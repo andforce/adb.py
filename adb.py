@@ -38,23 +38,22 @@ def device_info():
     display_info = []
     for group in pattern:
         g = group.group()
-        one_display = {}
         display = find_with_reg("(?<=mDisplayInfo=DisplayInfo)(.*)", g)
-        display_id = find_with_reg('(?<=displayId )\d+', display)
-        unique_id = find_with_reg('(?<=uniqueId ").*?(?=")', display)
-        app = find_with_reg('(?<=, app )\d+ x \d+', display)
-        real = find_with_reg('(?<=, real )\d+ x \d+', display)
-        largest_app = find_with_reg('(?<=, largest app )\d+ x \d+', display)
-        smallest_app = find_with_reg('(?<=, smallest app )\d+ x \d+', display)
-        mode = find_with_reg('(?<=mode )\d+', display)
-        default_mode = find_with_reg('(?<=defaultMode )\d+', display)
-        modes = find_with_reg('(?<=modes ).*?]', display).replace("=", ":")
-        print("----->> " + modes)
-        modes = json.loads(modes)
-        print(modes)
-
-        print(display)
-        display_info.append(one_display)
+        # format
+        display = re.sub(r'(\{\")(.*?, )(\w+ )(\d)(")', r'{\3\4', display)
+        display = re.sub(r'(\d+)( x )(\d+)', r'\1x\3', display)
+        display = re.sub(r'([A-Za-z]+) ([A-Za-z]+ )', r'\1_\2', display)
+        display = re.sub(r'([A-Za-z]+)=', r'\1 ', display)
+        # find all key
+        display = re.sub(r'([a-zA-Z]+_?)([a-zA-Z]+) ', r'"\1\2": ', display)
+        display = re.sub(r'": (\d+x\w+)', r'": "\1"', display)
+        display = re.sub(r'"state": (([a-zA-Z]+(, )?_?)+[\w])', r'"state": "\1"', display)
+        display = re.sub(r'"hdrCapabilities": (\S+), "', r'"hdrCapabilities": "\1", "', display)
+        display = re.sub(r'"density": (.*dpi)', r'"density": "\1"', display)
+        display = re.sub(r'"type": (([a-zA-Z]+_?)+)', r'"type": "\1"', display)
+        display = json.loads(display)
+        # print(display)
+        display_info.append(display)
         # print(display_id)
     info['display_info'] = display_info
 
@@ -98,12 +97,14 @@ def device_info():
             memory_info['MemFree'] = free + " kB"
     info['Memory Info'] = memory_info
 
-    # for group in re.match(r'Display: mDisplayId(.*?)ActivityStackViewController:', out, 0).group()
-    #     print("group" + group)
-
-    # parsed = json.loads(info)
-    print(json.dumps(info, ensure_ascii=False, indent=4, sort_keys=True))
-    print(info)
+    json_str = json.dumps(info, ensure_ascii=False, indent=2, sort_keys=False)
+    # highlight key
+    json_str = re.sub(r'(".*"):', r'\033[0;33m\1\033[0m:', json_str)
+    # highlight {
+    json_str = re.sub(r'({)\n', r'\033[0;32m\1\033[0m\n', json_str)
+    json_str = re.sub(r'(})', r'\033[0;32m\1\033[0m', json_str)
+    print(json_str)
+    # print(info)
 
 
 def _red_log(message):
@@ -261,13 +262,8 @@ def is_build_image_downloaded(build_image):
 def is_build_image_extracted(build_image):
     return os.path.exists(os.path.expanduser("~/Documents/darwin/" + build_image[:-4]))
 
-raw_string = '[{id:1, width:1080, height:2340, fps:60.000004}, {id:2, width:1080, height:2340, fps:90.0}]'
 
-parsed_string = re.sub(r"[“|”|‛|’|‘|`|´|″|′|']", '"', raw_string)
-
-print(parsed_string)
-
-# device_info()
+device_info()
 
 # print("fastboot mode: " + str(is_fastboot_mode()))
 # is_se()
