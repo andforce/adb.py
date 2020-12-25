@@ -7,6 +7,7 @@ import re
 import math
 import json
 
+
 def find_with_reg(reg, src):
     pattern = re.search(reg, src)
     if pattern is None:
@@ -152,42 +153,6 @@ def execute_shell(shell_cmd):
     return logs
 
 
-def fetch_build_server(branch_name='darwin'):
-    build_time = time.strftime("%Y%m%d", time.localtime())
-    git_log_command = 'smbclient ' \
-                      '-c "cd daily/darwin/SE-r00062.2/release-%s;ls" //10.79.121.16/flash ' \
-                      '-U wangdiyuan%%Andforce\!@#456 ' \
-                      '-W smartisan.cn | grep userdebug' % build_time
-    logs = execute_shell(git_log_command)
-    logs = logs.splitlines(False)
-
-    results = []
-    for line in logs:
-        first = line.split("      ")[0].strip()
-        if first.endswith(".tgz"):
-            results.append(first)
-    result = results[len(results) - 1]
-    print(_yellow_log("last_build_image:") + result)
-    return result
-
-
-def download(build_image):
-    print('start download:' + _red_log(build_image))
-    build_time = time.strftime("%Y%m%d", time.localtime())
-    download_cmd = 'cd /home/dy/Documents/darwin;' \
-                   'smbclient -c "cd daily/darwin/SE-r00062.2/release-%s;get %s" //10.79.121.16/flash ' \
-                   '-U wangdiyuan%%Andforce\!@#456 ' \
-                   '-W smartisan.cn' % (build_time, build_image)
-    logs = execute_shell(download_cmd)
-    print(logs)
-
-
-def extract_build_image(build_image):
-    print('start extract:' + _red_log(build_image))
-    logs = execute_shell("cd ~/Documents/darwin && tar xvf " + build_image)
-    print(logs)
-
-
 def reboot_bootloader():
     log = execute_shell("adb reboot bootloader")
     while execute_shell("fastboot devices") == '':
@@ -204,17 +169,6 @@ def find_devices():
         return False
     else:
         return True
-
-
-def flash_image(build_image):
-    wait_device_connect()
-    reboot_bootloader()
-    extract_image = build_image[:-4].strip()
-    flash_cmd = 'cd /home/dy/Documents/darwin/%s && ' \
-                'chmod a+x apps/* && ' \
-                'python fastboot-flash.py' % extract_image
-    print(_yellow_log("flash_image:") + flash_cmd)
-    execute_shell(flash_cmd)
 
 
 def wait_device_connect():
@@ -237,49 +191,4 @@ def wait_device_reboot_complete():
         print(_yellow_log("\ndevice has reboot completed"))
 
 
-def skip_setup():
-    print(_green_log("skip device setup."))
-    if not find_devices():
-        wait_device_connect()
-    print("disable-verity")
-    execute_shell('adb root && adb disable-verity && adb reboot')
-    print("等待手机重启")
-    wait_device_connect()
-    print("手机重启结束，等待进入设置页面...")
-    wait_device_reboot_complete()
-    print("开始跳过设置页面")
-    skip_cmd = 'adb root && adb remount && ' \
-               'adb shell am start -n com.smartisanos.setupwizard/.SetupWizardCompleteActivity && ' \
-               'sleep 2 && ' \
-               'adb shell input tap 540 2300 && adb shell settings put system screen_off_timeout 600001'
-    execute_shell(skip_cmd)
-
-
-def is_build_image_downloaded(build_image):
-    return os.path.exists(os.path.expanduser("~/Documents/darwin/" + build_image))
-
-
-def is_build_image_extracted(build_image):
-    return os.path.exists(os.path.expanduser("~/Documents/darwin/" + build_image[:-4]))
-
-
 device_info()
-
-# print("fastboot mode: " + str(is_fastboot_mode()))
-# is_se()
-# enter_root()
-# print(is_root())
-# if find_devices():
-#     find_image = fetch_build_server()
-#     print(find_image)
-#     if not is_build_image_downloaded(find_image):
-#         print("build image not download")
-#         download(find_image)
-#
-#     if not is_build_image_extracted(find_image):
-#         extract_build_image(find_image)
-#
-#     flash_image(find_image)
-#     skip_setup()
-# else:
-#     print("devices not connect!!!")
