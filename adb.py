@@ -5,7 +5,7 @@ import time
 import os
 import re
 import math
-
+import json
 
 def find_with_reg(reg, src):
     pattern = re.search(reg, src)
@@ -38,8 +38,23 @@ def device_info():
     display_info = []
     for group in pattern:
         g = group.group()
-        display_id = find_with_reg("(?<=mDisplayInfo=DisplayInfo)(.*)", g)
-        display_info.append(display_id)
+        one_display = {}
+        display = find_with_reg("(?<=mDisplayInfo=DisplayInfo)(.*)", g)
+        display_id = find_with_reg('(?<=displayId )\d+', display)
+        unique_id = find_with_reg('(?<=uniqueId ").*?(?=")', display)
+        app = find_with_reg('(?<=, app )\d+ x \d+', display)
+        real = find_with_reg('(?<=, real )\d+ x \d+', display)
+        largest_app = find_with_reg('(?<=, largest app )\d+ x \d+', display)
+        smallest_app = find_with_reg('(?<=, smallest app )\d+ x \d+', display)
+        mode = find_with_reg('(?<=mode )\d+', display)
+        default_mode = find_with_reg('(?<=defaultMode )\d+', display)
+        modes = find_with_reg('(?<=modes ).*?]', display).replace("=", ":")
+        print("----->> " + modes)
+        modes = json.loads(modes)
+        print(modes)
+
+        print(display)
+        display_info.append(one_display)
         # print(display_id)
     info['display_info'] = display_info
 
@@ -60,7 +75,16 @@ def device_info():
     cpu['Processor Count'] = processor_count
     hardware = find_with_reg('(?<=Hardware	: ).*', out)
     cpu['Hardware'] = hardware
+    # CPU abi
+    out = execute_shell('adb shell cat /system/build.prop | grep ro.product.cpu.abi | grep =')
+    for line in out.splitlines():
+        kv = line.split('=')
+        k_tmp = kv[0].split('.')
+        k = k_tmp[len(k_tmp) - 1]
+        v = kv[1].strip()
+        cpu[k] = v
     info['Cpu Info'] = cpu
+
     # Memory Info
     out = execute_shell('adb shell cat /proc/meminfo')
     memory_info = {}
@@ -68,7 +92,6 @@ def device_info():
         if minfo.startswith('MemTotal:'):
             total = find_with_reg('\d+', minfo)
             total_flot = float(total) / 1024 / 1024
-            print("total:" + str(math.ceil(total_flot)))
             memory_info['MemTotal'] = str(math.ceil(total_flot)) + ' GB'
         if minfo.startswith('MemFree:'):
             free = find_with_reg('\d+', minfo)
@@ -78,6 +101,8 @@ def device_info():
     # for group in re.match(r'Display: mDisplayId(.*?)ActivityStackViewController:', out, 0).group()
     #     print("group" + group)
 
+    # parsed = json.loads(info)
+    print(json.dumps(info, ensure_ascii=False, indent=4, sort_keys=True))
     print(info)
 
 
@@ -236,8 +261,13 @@ def is_build_image_downloaded(build_image):
 def is_build_image_extracted(build_image):
     return os.path.exists(os.path.expanduser("~/Documents/darwin/" + build_image[:-4]))
 
+raw_string = '[{id:1, width:1080, height:2340, fps:60.000004}, {id:2, width:1080, height:2340, fps:90.0}]'
 
-device_info()
+parsed_string = re.sub(r"[“|”|‛|’|‘|`|´|″|′|']", '"', raw_string)
+
+print(parsed_string)
+
+# device_info()
 
 # print("fastboot mode: " + str(is_fastboot_mode()))
 # is_se()
