@@ -130,12 +130,13 @@ try:
             pids.add(match.group(1))
 
         format_result = []
-        for s in pids:
+        for pid in pids:
+            format_result.append("--------------------------- pid of " + pid + "----------------------------\n")
             for one in all_log:
-                if one.find(' ' + s + ' ') != -1:
+                if one.find(' ' + pid + ' ') != -1:
                     # sys.stdout.write(one)
                     format_result.append(one)
-
+            format_result.append("=========================== pid of " + pid + "============================\n")
         format_log(format_result)
 except BrokenPipeError:
     exit(0)
