@@ -1,23 +1,17 @@
 import binascii
-
-import serial
-import re
-import requests
 import codecs
-from smspdu.codecs import UCS2
-
-import sys, unittest, random, codecs
-from datetime import datetime, timedelta
+import re
 
 import gsmmodem.pdu
-from gsmmodem.util import SimpleOffsetTzInfo
+import serial
 
-ser = serial.Serial('/dev/cu.usbserial-1430')
+# ser = serial.Serial('/dev/cu.usbserial-1430')
+ser = serial.Serial('/dev/ttyUSB0')
 # Text mode
 # ser.write('AT+CMGF="1"\n'.encode())
 
 # AT+CMGF=0
-# ser.write('AT+CMGF=0\n'.encode())
+ser.write('AT+CMGF=0\n'.encode())
 
 ser.write('AT+CSCS="UCS2"\n'.encode())
 
