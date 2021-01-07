@@ -2,7 +2,7 @@ import binascii
 import codecs
 import re
 
-import gsmmodem.pdu
+import pdu
 import serial
 
 # ser = serial.Serial('/dev/cu.usbserial-1430')
@@ -15,7 +15,8 @@ ser.write('AT+CMGF=0\n'.encode())
 
 ser.write('AT+CSCS="UCS2"\n'.encode())
 
-print("start read /dev/cu.usbserial-1430")
+# print("start read /dev/cu.usbserial-1430")
+print("start read /dev/ttyUSB0")
 while 1:
     read = ser.readline()
     u_read = read.decode('utf-8')
@@ -34,28 +35,28 @@ while 1:
 
 
 
-        result = gsmmodem.pdu.decodeSmsPdu(msg.strip())
+        result = pdu.decodeSmsPdu(msg.strip())
 
         print(result)
-        u_msg = str(msg.strip(), 'utf-8')
-
-        print("msg: --->> " + u_msg)
-        ser.write(('AT+CMGD=' + u_ME_id + '\n').encode())
-
-        infomatch = re.match(r'\+CMGR: "REC.*READ","(.*)",*"(.*)"', info.decode('utf-8'))
-
-        if infomatch:
-            srcphone = infomatch.group(1)
-            srctime = infomatch.group(2)
-            srcphone = str(srcphone.decode("hex_codec"), "utf-16-be").encode("utf8")
-
-        print("?????" + msg.decode(codecs.BOM_UTF16_BE))
-        u_msg = u_msg.strip('\r\n')
-        print("unhexlify before---> " + str(u_msg))
-        u_msg = binascii.unhexlify(u_msg)
-        print("unhexlify---> " + str(u_msg))
-        u_msg = u_msg.decode('utf-16-be')
-        print("unhexlify end ---> " + str(u_msg))
+        # u_msg = str(msg.strip(), 'utf-8')
+        #
+        # print("msg: --->> " + u_msg)
+        # ser.write(('AT+CMGD=' + u_ME_id + '\n').encode())
+        #
+        # infomatch = re.match(r'\+CMGR: "REC.*READ","(.*)",*"(.*)"', info.decode('utf-8'))
+        #
+        # if infomatch:
+        #     srcphone = infomatch.group(1)
+        #     srctime = infomatch.group(2)
+        #     srcphone = str(srcphone.decode("hex_codec"), "utf-16-be").encode("utf8")
+        #
+        # print("?????" + msg.decode(codecs.BOM_UTF16_BE))
+        # u_msg = u_msg.strip('\r\n')
+        # print("unhexlify before---> " + str(u_msg))
+        # u_msg = binascii.unhexlify(u_msg)
+        # print("unhexlify---> " + str(u_msg))
+        # u_msg = u_msg.decode('utf-16-be')
+        # print("unhexlify end ---> " + str(u_msg))
 
         # finalmsg = {'text': srcphone + ":" + u_msg + " [" + srctime + "]"}
         # mydata = {'value1': srcphone, 'value2': srctime, 'value3': u_msg}
