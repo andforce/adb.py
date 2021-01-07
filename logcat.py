@@ -86,53 +86,62 @@ def color_log(time, pid, tid, level, tag, msg):
     return list_result
 
 
-def split_log(long_log):
-    match = re.match(r'^(\d+-\d+ \d+:\d+:\d+.\d+) +(\d+) +(\d+) +(\w) +(.*?): (.*)\n', long_log)
+def parse_log(_log_line):
+    match = re.match(r'^(\d+-\d+ \d+:\d+:\d+.\d+) +(\d+) +(\d+) +(\w) +(.*?): (.*)\n', _log_line)
     if match is None:
         return None
     else:
         return match.groups()
 
 
-def format_log(lines):
-    for line in lines:
-        result = split_log(line)
+def format_log(_lines):
+    for _format_line in _lines:
+        result = parse_log(_format_line)
         if result is None:
-            sys.stdout.write(line)
+            sys.stdout.write(_format_line)
         else:
             (time, pid, tid, level, tag, msg) = result
-            log = color_log(time, pid, tid, level, tag, msg)
-            for l in log:
-                sys.stdout.write(l)
+            _color_logs = color_log(time, pid, tid, level, tag, msg)
+            for _one_color_log in _color_logs:
+                sys.stdout.write(_one_color_log)
 
+
+def find_pid_set(_logs, _pid_names):
+    _set = set()
+    for _find_in_line in _logs:
+        for _pid_name in _pid_names:
+            if _pid_name.strip() == '':
+                continue
+            _patterns = [r'(\d+):' + _pid_name,
+                         r'(\d+),\d+,' + _pid_name,
+                         r'(\d+) +(\d+) +[A-Z] +' + _pid_name + r'( +)?:']
+            for _pattern in _patterns:
+                _match = re.search(_pattern, _find_in_line)
+                if _match is not None:
+                    _set.add(_match.group(1))
+    return _set
+
+
+print(sys.argv)
 
 try:
     if len(sys.argv) == 1:
         format_log(sys.stdin)
     elif sys.argv[1] == 'pidof':
-        print(sys.argv[1] + " " + sys.argv[2])
-        pid_name_str = sys.argv[2]
-        pid_names = pid_name_str.split("|")
-        print(pid_names)
-        for line in sys.stdin:
-            line_have_pint = False
-            for pid_name in pid_names:
-                if line_have_pint:
-                    break
-                if pid_name.strip() == '':
-                    break
-                patterns = [r'(\d+):' + pid_name,
-                            r'(\d+),\d+,' + pid_name,
-                            r'(\d+) +(\d+) +[A-Z] +' + pid_name + r'( +)?:']
-                for p in patterns:
-                    match = re.search(p, line)
-                    if match is not None:
-                        pid = match.group(1)
-                        # print(f'pid is {pid}')
-                        if line.__contains__(' ' + pid + ' '):
-                            format_log([line])
-                            line_have_pint = True
-                            continue
+        _logs = []
+        for _line in sys.stdin:
+            _logs.append(_line)
 
+        print(sys.argv[1] + " " + sys.argv[2])
+        _pid_name_str = sys.argv[2]
+        _pid_names = _pid_name_str.split("|")
+        print(_pid_names)
+        _pid_set = find_pid_set(_logs, _pid_names)
+        print(_pid_set)
+
+        for line in _logs:
+            for _pid in _pid_set:
+                if line.__contains__(' ' + _pid + ' '):
+                    format_log([line])
 except BrokenPipeError:
     exit(0)
