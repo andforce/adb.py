@@ -1,6 +1,5 @@
 import re
 import sys
-import re
 
 fblack = "30"
 fred = "31"
@@ -108,36 +107,32 @@ def format_log(lines):
 
 
 try:
-    all_log = []
     if len(sys.argv) == 1:
         format_log(sys.stdin)
     elif sys.argv[1] == 'pidof':
         print(sys.argv[1] + " " + sys.argv[2])
-        filter_log = ""
-        pkg_name = sys.argv[2]
+        pid_name_str = sys.argv[2]
+        pid_names = pid_name_str.split("|")
+        print(pid_names)
         for line in sys.stdin:
-            all_log.append(line)
-            if line.find(pkg_name) != -1:
-                # sys.stdout.write(line)
-                filter_log = filter_log + line
-        # print(filter_log)
-        pids = set()
-        for match in re.finditer(r'(\d+):' + pkg_name, filter_log):
-            print(match.group(1))
-            pids.add(match.group(1))
-        for match in re.finditer(r'(\d+),\d+,' + pkg_name, filter_log):
-            print(match.group(1))
-            pids.add(match.group(1))
+            line_have_pint = False
+            for pid_name in pid_names:
+                if line_have_pint:
+                    break
+                if pid_name.strip() == '':
+                    break
+                patterns = [r'(\d+):' + pid_name,
+                            r'(\d+),\d+,' + pid_name,
+                            r'(\d+) +(\d+) +[A-Z] +' + pid_name + r'( +)?:']
+                for p in patterns:
+                    match = re.search(p, line)
+                    if match is not None:
+                        pid = match.group(1)
+                        # print(f'pid is {pid}')
+                        if line.__contains__(' ' + pid + ' '):
+                            format_log([line])
+                            line_have_pint = True
+                            continue
 
-        format_result = []
-        for pid in pids:
-            format_result.append("--------------------------- pid of " + pid + "----------------------------\n")
-            for one in all_log:
-                if one.find(' ' + pid + ' ') != -1:
-                    # sys.stdout.write(one)
-                    format_result.append(one)
-            format_result.append("=========================== pid of " + pid + "============================\n")
-        format_log(format_result)
 except BrokenPipeError:
     exit(0)
-
