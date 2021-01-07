@@ -4,9 +4,12 @@ import re
 
 import pdu
 import serial
+import push
 
-# ser = serial.Serial('/dev/cu.usbserial-1430')
-ser = serial.Serial('/dev/ttyUSB0')
+import platform
+
+ser = serial.Serial('/dev/cu.usbserial-1430')
+# ser = serial.Serial('/dev/ttyUSB0')
 # Text mode
 # ser.write('AT+CMGF="1"\n'.encode())
 
@@ -15,8 +18,8 @@ ser.write('AT+CMGF=0\n'.encode())
 
 ser.write('AT+CSCS="UCS2"\n'.encode())
 
-# print("start read /dev/cu.usbserial-1430")
-print("start read /dev/ttyUSB0")
+print("start read /dev/cu.usbserial-1430")
+# print("start read /dev/ttyUSB0")
 while 1:
     read = ser.readline()
     u_read = read.decode('utf-8')
@@ -33,11 +36,18 @@ while 1:
         msg = ser.readline()
         print(msg)
 
-
+        # {'smsc': '+8613800100500', 'tpdu_length': 26, 'type': 'SMS-DELIVER', 'number': '+8615313726078',
+        # 'protocol_id': 0, 'time': datetime.datetime(2021, 1, 7, 23, 24, 17, tzinfo=<pdu.SmsPduTzInfo object at 0x7fab73146550>), 'text': '你好呀'}
 
         result = pdu.decodeSmsPdu(msg.strip())
 
-        print(result)
+        # message = ('%s\n%s\n%s' % (result['text'], result['time'], result['number'])).encode('unicode-escape').decode(
+        #     'utf-8')
+
+        message = result['text'] + '\n' + str(result['time']) + '\n' + result['number']
+        print(message.encode('utf-16', 'surrogatepass').decode('utf-16'))
+
+        push.push_to(message)
         # u_msg = str(msg.strip(), 'utf-8')
         #
         # print("msg: --->> " + u_msg)

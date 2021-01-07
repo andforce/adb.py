@@ -55,34 +55,46 @@
 # https://blog.csdn.net/haijiege/article/details/86529460
 # https://daliuzi.cn/tasker-forward-sms-wechat/
 
+import json
 import requests
 
-secret = 'DA1WdrFoOUx5RQ5eXfDlOQv9XVw4C9vWzKyD0YoVGcc'
-qiye_id = 'ww0832e4b0cd472375'
-agent_id = '1000002'
 
-gettoken = "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + qiye_id + "&corpsecret=" + secret
+def push_to(msg):
+    secret = 'DA1WdrFoOUx5RQ5eXfDlOQv9XVw4C9vWzKyD0YoVGcc'
+    qiye_id = 'ww0832e4b0cd472375'
+    agent_id = '1000002'
 
-response = requests.get(gettoken)
-print(response.text)
+    gettoken = "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + qiye_id + "&corpsecret=" + secret
+
+    response = requests.get(gettoken)
+    get_result = json.loads(response.text)
+    ACCESS_TOKEN = str(get_result['access_token'])
+    print("ACCESS_TOKEN:" + ACCESS_TOKEN)
+
+    # //发送消息(文本)
+    SMSRF = 'SMSRF'
+    SMSRB = 'SMSRB'
+    SMSRT = 'SMSRT'
+    SMSRD = 'SMSRD'
+    # CONTENT = "发件人: " + SMSRF + "\n时间: " + SMSRT + ",  日期: " + SMSRD + "\n短信内容: " + SMSRB
+
+    message = {
+        "touser": "@all",
+        "msgtype": "text",
+        "agentid": agent_id,
+        "text": {
+            "content": msg
+        },
+        "safe": 0
+    }
+
+    json_msg = json.dumps(message)
+    print('message:' + str(json_msg))
+    send = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + ACCESS_TOKEN
+
+    post_result = requests.post(url=send, data=str(json_msg))
+    print(post_result.text)
 
 
-# //发送消息(文本)
-SMSRF = 'SMSRF'
-SMSRB = 'SMSRB'
-SMSRT = 'SMSRT'
-SMSRD = 'SMSRD'
-CONTENT = "发件人: " + SMSRF + "\n时间: " + SMSRT + ",  日期: " + SMSRD + "\n短信内容: " + SMSRB
-message = {
-    "touser": "@all",
-    "msgtype": "text",
-    "agentid": agent_id,
-    "text": {
-        "content": CONTENT
-    },
-    "safe": 0
-}
-
-send = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + ACCESS_TOKEN
-
-# requests.post(url='',data={'key1':'value1','key2':'value2'},headers={'Content-Type':'application/x-www-form-urlencoded'})
+if __name__ == '__main__':
+    push_to('测试')
