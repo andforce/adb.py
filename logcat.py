@@ -1,5 +1,6 @@
 import re
 import sys
+import datetime
 
 fblack = "30"
 fred = "31"
@@ -124,6 +125,19 @@ def find_pid_set(_logs, _pid_names):
 
 print(sys.argv)
 
+
+def read_log_time(_one_line_log):
+    match = re.match(r'\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d', _one_line_log)
+    if match is not None:
+        return match.group()
+    return None
+
+
+def time_in_right(time, start_time, end_time):
+    result = (start_time <= time) and (time <= end_time)
+    return result
+
+
 try:
     if len(sys.argv) == 1:
         format_log(sys.stdin)
@@ -143,5 +157,25 @@ try:
             for _pid in _pid_set:
                 if line.__contains__(' ' + _pid + ' '):
                     format_log([line])
+    elif sys.argv[1] == 'time':
+        _times = sys.argv[2].split("/")
+        print(_times)
+        _times_begin = _times[0]
+        _times_end = _times[1]
+
+        # 12-31 17:54:41.038
+        begin_time = datetime.datetime.strptime(_times_begin, "%m-%d %H:%M:%S.%f")
+        print(begin_time)
+        end_time = datetime.datetime.strptime(_times_end, "%m-%d %H:%M:%S.%f")
+        print(end_time)
+
+        for _line in sys.stdin:
+            _this_line_time_str = read_log_time(_line)
+            if _this_line_time_str is not None:
+                _this_date_time = datetime.datetime.strptime(_this_line_time_str, "%m-%d %H:%M:%S.%f")
+                if time_in_right(_this_date_time, begin_time, end_time):
+                    sys.stdout.write(_line)
+
+
 except BrokenPipeError:
     exit(0)
