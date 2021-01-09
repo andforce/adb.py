@@ -9,9 +9,9 @@ import time
 # https://wenku.baidu.com/view/74c49356ad02de80d4d84091.html
 # https://blog.csdn.net/hbk320/article/details/50145373/
 
-ser = serial.Serial('/dev/cu.usbserial-1420')
+# ser = serial.Serial('/dev/cu.usbserial-1420')
 # ser = serial.Serial('/dev/cu.usbserial-1420', rtscts=True, dsrdtr=True)
-# ser = serial.Serial('/dev/ttyUSB0', rtscts=True, dsrdtr=True)
+ser = serial.Serial('/dev/ttyUSB0', rtscts=True, dsrdtr=True)
 # Text mode
 # ser.write('AT+CMGF="1"\n'.encode())
 
@@ -45,16 +45,19 @@ while 1:
         # 'protocol_id': 0, 'time': datetime.datetime(2021, 1, 7, 23, 24, 17,
         # tzinfo=<pdu.SmsPduTzInfo object at 0x7fab73146550>), 'text': '你好呀'}
 
-        result = pdu.decodeSmsPdu(msg.strip())
+        try:
+            result = pdu.decodeSmsPdu(msg.strip())
+            message = result['text'] + '\n' + str(result['time']) + '\n' + result['number']
+            print('CONTENT, text:' + message.encode('utf-16', 'surrogatepass').decode('utf-16'))
 
-        message = result['text'] + '\n' + str(result['time']) + '\n' + result['number']
-        print('CONTENT, text:' + message.encode('utf-16', 'surrogatepass').decode('utf-16'))
-
-        push.push_to(message)
-        time.sleep(3)
-        print("Delete Message:" + message)
-        ser.write(('AT+CMGD=%s\n' % sms_index).encode())
-        time.sleep(0.5)
+            push.push_to(message)
+            time.sleep(3)
+            print("Delete Message:" + message)
+            ser.write(('AT+CMGD=%s\n' % sms_index).encode())
+            time.sleep(0.5)
+        except Exception:
+            print("收到短信，解析出错了")
+            print(msg)
         continue
 
     match = re.match(b"\+CMGL: \d+,\d+,.*,\d+\r\n", read)
@@ -89,19 +92,23 @@ while 1:
         match = re.match(b"\+CMGR: \d+,.*,\d+\r\n", read)
         if match:
             content = ser.readline()
-            result = pdu.decodeSmsPdu(content.strip())
-            message = result['text'] + '\n' + str(result['time']) + '\n' + result['number']
-            print('>>>>> >>>>>>')
-            print('CONTENT, text:' + message.encode('utf-16', 'surrogatepass').decode('utf-16'))
-            print('<<<<< <<<<<<')
-            empty_line = ser.readline()
-            print(empty_line)
-            want_ok = ser.readline()
-            if re.match(b'OK\r\n', want_ok):
-                print("read success")
-            else:
-                print("read failed")
-            print(want_ok)
+            try:
+                result = pdu.decodeSmsPdu(content.strip())
+                message = result['text'] + '\n' + str(result['time']) + '\n' + result['number']
+                print('>>>>> >>>>>>')
+                print('CONTENT, text:' + message.encode('utf-16', 'surrogatepass').decode('utf-16'))
+                print('<<<<< <<<<<<')
+                empty_line = ser.readline()
+                print(empty_line)
+                want_ok = ser.readline()
+                if re.match(b'OK\r\n', want_ok):
+                    print("read success")
+                else:
+                    print("read failed")
+                print(want_ok)
+            except Exception:
+                print("解析又出错了")
+                print(content)
         continue
     match = re.match(b'RING\r\n', read)
     if match:
