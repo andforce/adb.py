@@ -88,13 +88,12 @@ def send_call_number():
         print(want_ok)
 
 
-def dev_serial_reader():
-    dev_serial = '/dev/cu.usbserial-1430' if platform.system() == 'Darwin' else '/dev/ttyUSB0'
-
-    ser = serial.Serial(dev_serial, rtscts=True, dsrdtr=True)
-
+def dev_serial_reader(ser):
     # Text mode
     # ser.write('AT+CMGF="1"\n'.encode())
+    print('>>>>>>>' + str(ser.isOpen()))
+
+
 
     # PDU mode
     ser.write('AT+CMGF=0\n'.encode())
@@ -102,8 +101,6 @@ def dev_serial_reader():
 
     ser.write('AT+CSCS="UCS2"\n'.encode())
     time.sleep(1)
-
-    print("start read: " + dev_serial)
 
     _sms_reader = sms_reader()  # 只是变成一个生成器
     _sms_reader.__next__()  # next 只唤醒yiedl不传递值
@@ -113,6 +110,17 @@ def dev_serial_reader():
 
     _send_call_number = send_call_number()
     _send_call_number.__next__()
+
+    while True:
+        print('start waiting')
+        # NB: for PySerial v3.0 or later, use property `in_waiting` instead of function `inWaiting()` below!
+        if ser.inWaiting() > 0:  # if incoming bytes are waiting to be read from the serial input buffer
+            print('Opened')
+            break
+        # Put the rest of your code you want here
+        print('start sleep')
+        time.sleep(
+            0.01)  # Optional: sleep 10 ms (0.01 sec) once per loop to let other threads on your PC run during this time.
 
     while True:
         read = ser.readline()
@@ -189,4 +197,32 @@ def dev_serial_reader():
                     break
 
 
-dev_serial_reader()
+import os,stat
+
+
+def open_serial_port():
+    dev_serial = '/dev/cu.usbserial-1430' if platform.system() == 'Darwin' else '/dev/ttyUSB0'
+    os.chmod(dev_serial, stat.S_IRWXO + stat.S_IRWXG + stat.S_IRWXU)
+    return serial.Serial(dev_serial, rtscts=True, dsrdtr=True)
+
+
+ser = None
+while True:
+    try:
+        if ser is None:
+            ser = open_serial_port()
+        if ser is not None:
+            dev_serial_reader(ser)
+        print('Open:' + ser)
+    except serial.serialutil.SerialException as e:
+        print('异常了' + str(e))
+        if ser is not None:
+            ser.close()
+        ser = None
+        time.sleep(1)
+    except FileNotFoundError as e:
+        print('异常了' + str(e))
+        if ser is not None:
+            ser.close()
+        ser = None
+        time.sleep(1)
